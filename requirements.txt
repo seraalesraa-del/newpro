@@ -48,3 +48,6 @@ tzdata==2025.2
 urllib3==2.6.3
 whitenoise==6.11.0
 zope.interface==8.0.1
+django-redis
+channels-redis
+

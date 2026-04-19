@@ -89,11 +89,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'AmazonProject.wsgi.application'
 ASGI_APPLICATION = 'AmazonProject.asgi.application'
 
+# ---------------------------------------------------------------------
+# Chaannel layer to support multiple server -UPstash channel layer 
+# ---------------------------------------------------------------------
+
+
+REDIS_URL = os.environ.get("REDIS_URL")
+
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [REDIS_URL],
+        },
+    },
 }
+
+
+
 
 # ---------------------------------------------------------------------
 # Database
