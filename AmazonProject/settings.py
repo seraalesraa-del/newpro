@@ -198,6 +198,16 @@ if os.environ.get('RENDER') == 'true':
 else:
     MEDIA_ROOT = BASE_DIR / 'media'
 
+INSTALLED_APPS += ["storages"]
+
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
+AWS_ACCESS_KEY_ID = config("B2_KEY_ID")
+AWS_SECRET_ACCESS_KEY = config("B2_APP_KEY")
+AWS_STORAGE_BUCKET_NAME = config("B2_BUCKET_NAME")
+AWS_S3_ENDPOINT_URL = "https://s3.us-west-002.backblazeb2.com"
+AWS_QUERYSTRING_AUTH = False  # makes file URLs public
+
 # ---------------------------------------------------------------------
 # Authentication
 # ---------------------------------------------------------------------
