@@ -8,8 +8,6 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.http import JsonResponse
-from django.core.files.storage import default_storage
-import os
 
 from balance.models import Wallet, RechargeRequest, RechargeHistory, Voucher, BalanceRequest
 from balance.utils import (
@@ -145,11 +143,6 @@ def upload_voucher_view(request, recharge_id):
 # -----------------------------
 @login_required
 @user_passes_test(is_admin)
-from django.core.files.storage import default_storage
-import os
-
-@login_required
-@user_passes_test(is_admin)
 def approve_voucher(request, voucher_id):
     voucher = get_object_or_404(Voucher, id=voucher_id)
     recharge_request = voucher.recharge_request
@@ -165,6 +158,7 @@ def approve_voucher(request, voucher_id):
                 if hasattr(voucher.file, "path") and os.path.isfile(voucher.file.path):
                     os.remove(voucher.file.path)   # local disk case
                 else:
+                    from django.core.files.storage import default_storage
                     default_storage.delete(voucher.file.name)  # cloud storage case
             except Exception:
                 pass
@@ -179,15 +173,9 @@ def approve_voucher(request, voucher_id):
     return redirect("accounts:admin_dashboard")
 
 
-
 # -----------------------------
 # Reject Voucher (Admin)
 # -----------------------------
-@login_required
-@user_passes_test(is_admin)
-from django.core.files.storage import default_storage
-import os
-
 @login_required
 @user_passes_test(is_admin)
 def reject_voucher(request, voucher_id):
@@ -205,6 +193,7 @@ def reject_voucher(request, voucher_id):
                 if hasattr(voucher.file, "path") and os.path.isfile(voucher.file.path):
                     os.remove(voucher.file.path)   # local disk case
                 else:
+                    from django.core.files.storage import default_storage
                     default_storage.delete(voucher.file.name)  # cloud storage case
             except Exception:
                 pass
@@ -218,10 +207,6 @@ def reject_voucher(request, voucher_id):
 # -----------------------------
 # Reject Recharge (Admin - no voucher)
 # -----------------------------
-@login_required
-@user_passes_test(is_admin)
-
-
 @login_required
 @user_passes_test(is_admin)
 def reject_recharge_request(request, recharge_id):
@@ -239,6 +224,7 @@ def reject_recharge_request(request, recharge_id):
                     if hasattr(voucher_file, "path") and os.path.isfile(voucher_file.path):
                         os.remove(voucher_file.path)   # local disk case
                     else:
+                        from django.core.files.storage import default_storage
                         default_storage.delete(voucher_file.name)  # cloud storage case
                 except Exception:
                     pass
@@ -252,7 +238,6 @@ def reject_recharge_request(request, recharge_id):
             return JsonResponse({"status": "ok"})
 
     return redirect("accounts:admin_dashboard")
-
 
 
 # -----------------------------
