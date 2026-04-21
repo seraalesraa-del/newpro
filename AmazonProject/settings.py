@@ -206,7 +206,8 @@ AWS_ACCESS_KEY_ID = config("B2_KEY_ID")
 AWS_SECRET_ACCESS_KEY = config("B2_APP_KEY")
 AWS_STORAGE_BUCKET_NAME = config("B2_BUCKET_NAME")
 AWS_S3_ENDPOINT_URL = "https://s3.us-west-002.backblazeb2.com"
-AWS_QUERYSTRING_AUTH = False  # makes file URLs public
+AWS_QUERYSTRING_AUTH = True
+AWS_QUERYSTRING_EXPIRE = 31536000
 
 # ---------------------------------------------------------------------
 # Authentication
