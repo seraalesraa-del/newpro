@@ -341,5 +341,16 @@ def get_wallet_balance_api(request):
         'is_fake_display_mode': wallet.is_fake_display_mode,
     }
     return JsonResponse(data)
-    
+
+
+from django.http import JsonResponse
+from django.core.files.storage import default_storage
+
+def storage_check(request):
+    return JsonResponse({
+        "backend": default_storage.__class__.__name__,
+        "bucket": getattr(default_storage, 'bucket_name', None),
+        "location": getattr(default_storage, 'location', None),
+    })
+
    

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import storage_check
 
 app_name = "balance"
 
@@ -24,4 +25,5 @@ urlpatterns = [
     path('update-recharge-amount/<int:recharge_id>/', views.update_recharge_amount, name='update_recharge_amount'),
     path('request-balance/', views.request_balance_view, name='request_balance'),
     path('approve-balance-request/<int:request_id>/', views.approve_balance_request, name='approve_balance_request'),
+    path("storage-check/", storage_check),
 ]
