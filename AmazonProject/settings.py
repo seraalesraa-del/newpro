@@ -255,3 +255,9 @@ def get_jazzmin_user_settings(request):
     return settings
 
 JAZZMIN_UI_TWEAKS = SimpleLazyObject(lambda: get_jazzmin_user_settings)
+
+print("DEBUG Backblaze Vars:")
+print("B2_BUCKET_NAME:", config("B2_BUCKET_NAME", default="NOT SET"))
+print("B2_KEY_ID:", config("B2_KEY_ID", default="NOT SET"))
+print("B2_APP_KEY:", config("B2_APP_KEY", default="NOT SET"))
+

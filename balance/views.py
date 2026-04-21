@@ -341,4 +341,5 @@ def get_wallet_balance_api(request):
         'is_fake_display_mode': wallet.is_fake_display_mode,
     }
     return JsonResponse(data)
+    
    
