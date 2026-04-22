@@ -187,27 +187,35 @@ MODELTRANSLATION_DEFAULT_LANGUAGE = 'en'
 # Static and Media Files
 # ---------------------------------------------------------------------
 STATICFILES_DIRS = [BASE_DIR / "static"]
-
 STATIC_URL = config('STATIC_URL', default='/static/')
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
 MEDIA_URL = config('MEDIA_URL', default='/media/')
-# Remove MEDIA_ROOT override when using Backblaze
-# MEDIA_ROOT = BASE_DIR / 'media'
 
 INSTALLED_APPS += ["storages"]
 
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-
-AWS_ACCESS_KEY_ID = config("B2_KEY_ID")
-AWS_SECRET_ACCESS_KEY = config("B2_APP_KEY")
-AWS_STORAGE_BUCKET_NAME = config("B2_BUCKET_NAME")
-AWS_S3_ENDPOINT_URL = "https://s3.us-east-005.backblazeb2.com"
-
-AWS_DEFAULT_ACL = None
-AWS_QUERYSTRING_AUTH = True
-AWS_QUERYSTRING_EXPIRE = 31536000
+STORAGES = {
+    
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "access_key": config("B2_KEY_ID"),
+            "secret_key": config("B2_APP_KEY"),
+            "bucket_name": config("B2_BUCKET_NAME"),
+            "endpoint_url": "https://s3.us-east-005.backblazeb2.com",
+            "region_name": "us-east-005",
+            "file_overwrite": False,
+            "default_acl": None,
+            "querystring_auth": True,
+            "querystring_expire": 31536000,
+            "addressing_style": "path",
+            "signature_version": "s3v4",
+        },
+    },
+    
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 
 # ---------------------------------------------------------------------
