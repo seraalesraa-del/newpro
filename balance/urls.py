@@ -26,4 +26,5 @@ urlpatterns = [
     path('request-balance/', views.request_balance_view, name='request_balance'),
     path('approve-balance-request/<int:request_id>/', views.approve_balance_request, name='approve_balance_request'),
     path("storage-check/", storage_check),
+    path('test-upload/', views.test_upload, name='test_upload'),
 ]

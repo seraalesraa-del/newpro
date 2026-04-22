@@ -352,5 +352,35 @@ def storage_check(request):
         "bucket": getattr(default_storage, 'bucket_name', None),
         "location": getattr(default_storage, 'location', None),
     })
+    
+
+
+@login_required
+def test_upload(request):
+    from django.core.files.storage import default_storage
+    from django.core.files.base import ContentFile
+    import json
+    
+    # Try to upload a test file to Backblaze
+    try:
+        test_content = ContentFile(b"test file content")
+        saved_path = default_storage.save("test/debug_test.txt", test_content)
+        file_url = default_storage.url(saved_path)
+        result = {
+            "status": "success",
+            "backend": default_storage.__class__.__name__,
+            "saved_path": saved_path,
+            "file_url": file_url,
+            "bucket": getattr(default_storage, 'bucket_name', None),
+        }
+    except Exception as e:
+        result = {
+            "status": "error",
+            "backend": default_storage.__class__.__name__,
+            "error": str(e),
+            "error_type": type(e).__name__,
+        }
+    
+    return JsonResponse(result)
 
    
