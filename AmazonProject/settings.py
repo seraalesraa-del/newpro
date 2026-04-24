@@ -194,7 +194,6 @@ MEDIA_URL = config('MEDIA_URL', default='/media/')
 INSTALLED_APPS += ["storages"]
 
 STORAGES = {
-    
     "default": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
         "OPTIONS": {
@@ -206,12 +205,11 @@ STORAGES = {
             "file_overwrite": False,
             "default_acl": None,
             "querystring_auth": True,
-            "querystring_expire": 31536000,
+            "querystring_expire": 604800, 
             "addressing_style": "path",
             "signature_version": "s3v4",
         },
     },
-    
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
