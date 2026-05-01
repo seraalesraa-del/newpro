@@ -123,6 +123,9 @@ if DATABASE_URL:
             'PASSWORD': url.password or '',
             'HOST': url.hostname or '',
             'PORT': url.port or '5432',
+            'OPTIONS': {
+                'sslmode': 'require'  # This is the only addition - forces SSL
+            }
         }
     }
 else:

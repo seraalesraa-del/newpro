@@ -1,96 +1,78 @@
 import os
 import random
 import re
-
 import django
-from django.core.files import File
 
-
-# Setup Django environment
+# Force Django to use Render's database
+os.environ["DATABASE_URL"] = "postgresql://amazon_db_9kte_user:nsFFiRIznTbhOWBJbQuBgn02yiQpMPtf@dpg-d7q9mg1kh4rs73b4vbf0-a.virginia-postgres.render.com/amazon_db_9kte"  # Replace with your actual Render DB URL
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AmazonProject.settings")
 django.setup()
 
-
+from django.core.files.storage import default_storage
 from products.models import Product
-
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 ROLE_ORDER = ["referee", "referrer"]
-IMAGE_FOLDER_NAME = "products"
-
 
 def is_image(filename: str) -> bool:
     return filename.lower().endswith(IMAGE_EXTENSIONS)
 
-
 def extract_sequence(filename: str) -> int:
-    """Return numeric order from names like product (12).jpg or product(12).jpg; fallback to 0."""
     match = re.search(r"product\s*\((\d+)\)", filename, re.IGNORECASE)
     return int(match.group(1)) if match else 0
 
-
 def extract_product_name(filename: str) -> str:
-    """Return a cleaned product name from the image filename."""
-    base_name, _ext = os.path.splitext(filename)
+    base_name = os.path.splitext(filename)[0]
     base_name = base_name.replace("_", " ").replace("-", " ").strip()
     base_name = re.sub(r"\s+", " ", base_name)
     return base_name.title() if base_name else "Product"
 
-
-def get_media_root() -> str:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base_dir, "media")
-
-
-def product_exists(filename: str) -> bool:
-    return Product.objects.filter(file=f"products/{filename}").exists()
-
-
-def create_product(source_path: str, filename: str, role: str, sequence: int):
-    with open(source_path, "rb") as file_handle:
-        product = Product(
-            name=extract_product_name(filename),
-            price=round(random.uniform(10, 100), 2),
-            is_active=True,
-            cycle_number=1,
-            role_pool=role,
-            sequence_in_cycle=sequence,
-        )
-        product.file.save(filename, File(file_handle), save=True)
-    print(f"Added {filename} (role {role}) with price {product.price}")
-
+def product_exists(key: str) -> bool:
+    return Product.objects.filter(file=key).exists()
 
 def main():
-    media_root = get_media_root()
-    images_dir = os.path.join(media_root, IMAGE_FOLDER_NAME)
+    print("Connecting to Backblaze and Render database...")
 
-    if not os.path.isdir(images_dir):
-        print("Products image folder not found. Ensure files are under media/products.")
+    try:
+        # List files from Backblaze
+        dirs, files = default_storage.listdir("products")
+    except Exception as e:
+        print(f"Error listing Backblaze folder: {e}")
         return
 
-    files = [f for f in os.listdir(images_dir) if is_image(f)]
-    if not files:
-        print("No images found in media/products.")
+    images = [f for f in files if is_image(f)]
+    if not images:
+        print("No images found in Backblaze products/ folder.")
         return
 
-    files.sort(key=lambda name: (extract_sequence(name), name.lower()))
+    print(f"Found {len(images)} images in Backblaze.")
 
     sequence = 1
-    for idx, filename in enumerate(files):
+    for idx, filename in enumerate(sorted(images, key=lambda n: (extract_sequence(n), n.lower()))):
+        key = f"products/{filename}"
         role = ROLE_ORDER[idx % len(ROLE_ORDER)]
-        source_path = os.path.join(images_dir, filename)
 
-        if not os.path.exists(source_path):
-            print(f"Source file {source_path} missing, skipping.")
+        if product_exists(key):
+            print(f"✅ Already exists: {filename} (skipped)")
             continue
 
-        if product_exists(filename):
-            print(f"Product for {filename} already exists, skipping...")
-            continue
+        try:
+            product = Product(
+                name=extract_product_name(filename),
+                price=round(random.uniform(10, 100), 2),
+                is_active=True,
+                cycle_number=1,
+                role_pool=role,
+                sequence_in_cycle=sequence,
+            )
+            product.file.name = key  # Point to Backblaze
+            product.save()
+            print(f"✅ Created: {filename} (role: {role}, price: {product.price})")
+            sequence += 1
+        except Exception as e:
+            print(f"❌ Failed to create {filename}: {e}")
 
-        create_product(source_path, filename, role, sequence)
-        sequence += 1
-
+    print("Done!")
 
 if __name__ == "__main__":
     main()
