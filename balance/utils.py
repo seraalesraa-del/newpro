@@ -1,16 +1,15 @@
 import os
-import uuid
 from decimal import Decimal
-
+from django.core.files.base import File
 from django.db import transaction
 from django.utils import timezone
-from django.core.files.storage import default_storage
-from django.core.exceptions import ValidationError
-
 from balance.models import Wallet, RechargeRequest, Voucher, RechargeHistory
-from stoppoints.models import StopPointProgress
+from stoppoints.models import StopPoint, StopPointProgress
 from stoppoints.utils import get_active_stop_point, apply_recharge_to_stop_point
+from products.models import UserProductTask
+ 
 from notification.utils import notify_roles, create_admin_dashboard_event
+
 
 
 # -----------------------------
@@ -21,15 +20,16 @@ def get_wallet(user):
     wallet, _ = Wallet.objects.get_or_create(user=user)
     return wallet
 
-
 def get_wallet_balance(user):
-    """Returns current balance."""
+    """
+    Returns total dynamic balance: current + product + referral
+    """
     wallet = get_wallet(user)
     return wallet.current_balance
 
 
 def handle_stop_point_recharge(user, wallet, recharge_amount):
-    """Apply a recharge toward the active stop point requirement."""
+    """Apply a recharge toward the active stop point requirement and credit bonus when cleared."""
     stop_point = get_active_stop_point(user)
     if not stop_point:
         return None
@@ -49,10 +49,14 @@ def handle_stop_point_recharge(user, wallet, recharge_amount):
 
 def finalize_stop_point_clearance(user, wallet, stop_point):
     """Mark stop point as cleared and disburse any pending bonus."""
+    # Credit only the bonus to wallet balance (required balance stays as pricing pool)
     bonus_amount = Decimal(stop_point.special_bonus_amount or Decimal("0.00"))
     if bonus_amount > Decimal("0.00"):
         wallet.current_balance += bonus_amount
         wallet.save(update_fields=["current_balance"])
+
+    # Bonus is reflected in current balance only; product commission tracks task prices.
+    if bonus_amount > Decimal("0.00"):
         stop_point.bonus_disbursed = True
         stop_point.bonus_disbursed_at = timezone.now()
 
@@ -62,9 +66,11 @@ def finalize_stop_point_clearance(user, wallet, stop_point):
     if stop_point.required_balance_remaining not in (None, Decimal("0.00")):
         stop_point.required_balance_remaining = Decimal("0.00")
         updates.append("required_balance_remaining")
+
     if stop_point.status != "approved":
         stop_point.status = "approved"
         updates.append("status")
+
     if updates:
         stop_point.save(update_fields=updates)
 
@@ -73,12 +79,16 @@ def finalize_stop_point_clearance(user, wallet, stop_point):
     progress.is_stopped = False
     progress.save(update_fields=["last_cleared", "is_stopped"])
 
-
 @transaction.atomic
 def update_wallet_balance(user, amount, action="add", balance_type="current"):
-    """Generic wallet update."""
+    """
+    Generic wallet update.
+    balance_type: 'current', 'product_commission', 'referral_commission'
+    action: 'add' or 'subtract'
+    """
     wallet = get_wallet(user)
     amount = Decimal(amount)
+
     updated_fields = set()
 
     if balance_type == "current":
@@ -117,13 +127,14 @@ def update_wallet_balance(user, amount, action="add", balance_type="current"):
     wallet.save(update_fields=list(updated_fields))
     return wallet
 
-
 # -----------------------------
 # Recharge Utilities
 # -----------------------------
 @transaction.atomic
 def create_recharge_request(user, amount):
-    """Create a pending recharge request."""
+    """
+    Create a pending recharge request
+    """
     amount = Decimal(amount)
     recharge = RechargeRequest.objects.create(user=user, amount=amount)
 
@@ -155,25 +166,34 @@ def create_recharge_request(user, amount):
 
     return recharge
 
-
 @transaction.atomic
 def approve_recharge(recharge_request, voucher_file=None):
-    """Approve recharge request."""
+    """
+    Approve recharge request:
+    - update wallet current_balance
+    - set balance_source to 'recharge'
+    - set has_recharged to True
+    - disable fake mode
+    - mark recharge approved
+    - log history
+    - clear stop point if balance is now sufficient
+    """
     if recharge_request.status != "pending":
         raise ValueError("Recharge already processed")
 
     user = recharge_request.user
     wallet = Wallet.objects.select_for_update().get(user=user)
 
+    # 1. Update wallet with new balance source tracking
     wallet.current_balance += recharge_request.amount
     wallet.balance_source = 'recharge'
     wallet.has_recharged = True
-    wallet.is_fake_display_mode = False
+    wallet.is_fake_display_mode = False  # Exit fake mode
     wallet.save(update_fields=[
         'current_balance',
         'balance_source',
         'has_recharged',
-        'is_fake_display_mode',
+        'is_fake_display_mode'
     ])
 
     handle_stop_point_recharge(user, wallet, recharge_request.amount)
@@ -193,112 +213,69 @@ def approve_recharge(recharge_request, voucher_file=None):
         },
     )
 
+    # 2. Mark recharge as approved
     recharge_request.status = "approved"
     recharge_request.save(update_fields=['status'])
 
+    # 3. Log history
     history = RechargeHistory.objects.create(
         user=user,
         recharge_request=recharge_request,
         amount=recharge_request.amount,
-        status="approved",
+        status="approved"
     )
-
-    # ✅ Safe archive: no open(), no crash if file missing
-    if voucher_file and getattr(voucher_file, "name", ""):
-        try:
-            history.voucher_file.save(
-                os.path.basename(voucher_file.name),
-                voucher_file,
-                save=True,
-            )
-        except FileNotFoundError:
-            pass  # file missing in Backblaze -> skip, don't crash
-        except Exception:
-            pass  # any storage/network error -> skip, don't crash
+    if voucher_file:
+        voucher_file.open('rb')
+        history.voucher_file.save(
+            os.path.basename(voucher_file.name),
+            File(voucher_file),
+            save=True
+        )
+        voucher_file.close()
 
     return recharge_request
 
-
 @transaction.atomic
 def reject_recharge(recharge_request, voucher_file=None):
-    """Reject recharge request."""
+    """
+    Reject recharge request:
+    - mark rejected
+    - log history
+    """
     if recharge_request.status != "pending":
         raise ValueError("Recharge already processed")
 
     recharge_request.status = "rejected"
-    recharge_request.save(update_fields=["status"])
+    recharge_request.save()
 
     history = RechargeHistory.objects.create(
         user=recharge_request.user,
         recharge_request=recharge_request,
         amount=recharge_request.amount,
-        status="rejected",
+        status="rejected"
     )
-
-    # ✅ Safe archive: no open(), no crash if file missing
-    if voucher_file and getattr(voucher_file, "name", ""):
-        try:
-            history.voucher_file.save(
-                os.path.basename(voucher_file.name),
-                voucher_file,
-                save=True,
-            )
-        except FileNotFoundError:
-            pass  # file missing -> skip, don't crash
-        except Exception:
-            pass  # storage/network error -> skip, don't crash
-
+    if voucher_file:
+        voucher_file.open('rb')
+        history.voucher_file.save(
+            os.path.basename(voucher_file.name),
+            File(voucher_file),
+            save=True
+        )
+        voucher_file.close()
     return recharge_request
-
 
 # -----------------------------
 # Voucher Utilities
 # -----------------------------
-MAX_VOUCHER_BYTES = 3 * 1024 * 1024  # 3MB
-
-
 @transaction.atomic
-def upload_voucher(recharge_request, uploaded_file):
+def upload_voucher(recharge_request, file):
     """
-    Robust upload:
-    - validate max size (3MB)
-    - upload to Backblaze with unique key
-    - verify object exists
-    - update DB only after confirmed upload
+    Upload or update voucher for recharge
     """
-    if uploaded_file.size > MAX_VOUCHER_BYTES:
-        raise ValidationError("File too large (max 3MB).")
-
     voucher, _ = Voucher.objects.get_or_create(recharge_request=recharge_request)
-
-    ext = uploaded_file.name.rsplit(".", 1)[-1].lower() if "." in uploaded_file.name else ""
-    key = f"vouchers/{recharge_request.id}/{uuid.uuid4().hex}{('.' + ext) if ext else ''}"
-
-    saved_name = default_storage.save(key, uploaded_file)
-
-    # verify it really exists
-    try:
-        if not default_storage.exists(saved_name):
-            raise IOError("Upload incomplete.")
-    except Exception:
-        try:
-            default_storage.delete(saved_name)
-        except Exception:
-            pass
-        raise IOError("Upload failed or was interrupted.")
-
-    # delete old file best-effort if replacing
-    old_name = voucher.file.name if voucher.file and voucher.file.name else ""
-    if old_name and old_name != saved_name:
-        try:
-            default_storage.delete(old_name)
-        except Exception:
-            pass
-
-    voucher.file.name = saved_name
-    voucher.save(update_fields=["file"])
+    voucher.file = file
+    voucher.save()
     return voucher
-
 
 # -----------------------------
 # History Utilities
@@ -317,18 +294,14 @@ def get_recharge_history_maps(user_ids):
     for history in histories:
         history_map.setdefault(history.user_id, []).append(history)
 
-        # ✅ Safe URL generation: won't crash if file missing or URL signing fails
         voucher_url = None
-        try:
-            if history.voucher_file and history.voucher_file.name:
-                voucher_url = history.voucher_file.url
-            else:
-                recharge_request = history.recharge_request
-                voucher = getattr(recharge_request, 'voucher', None) if recharge_request else None
-                if voucher and voucher.file and voucher.file.name:
-                    voucher_url = voucher.file.url
-        except Exception:
-            voucher_url = None
+        if history.voucher_file:
+            voucher_url = getattr(history.voucher_file, 'url', None)
+        else:
+            recharge_request = history.recharge_request
+            voucher = getattr(recharge_request, 'voucher', None) if recharge_request else None
+            if voucher and getattr(voucher, 'file', None):
+                voucher_url = getattr(voucher.file, 'url', None)
 
         if voucher_url:
             history.display_voucher_url = voucher_url
@@ -336,23 +309,23 @@ def get_recharge_history_maps(user_ids):
 
     return history_map, history_documents_map
 
-
 # -----------------------------
 # Fake Display Mode Utilities
 # -----------------------------
 @transaction.atomic
 def activate_fake_display_mode(user, referral_amount):
-    """Activates fake display mode when user receives referral earnings."""
+    """
+    Activates fake display mode when user receives referral earnings.
+    Only activates if user has no current_balance (pure referral earnings).
+    """
+    from django.utils import timezone
     wallet, _ = Wallet.objects.get_or_create(user=user)
-
+    
+    # Only activate fake mode if user has no recharged balance
     if wallet.current_balance == 0 and not wallet.is_fake_display_mode:
         wallet.referral_earned_balance += referral_amount
         wallet.is_fake_display_mode = True
         wallet.fake_mode_started_at = timezone.now()
-        wallet.save(update_fields=[
-            'referral_earned_balance',
-            'is_fake_display_mode',
-            'fake_mode_started_at',
-        ])
+        wallet.save(update_fields=['referral_earned_balance', 'is_fake_display_mode', 'fake_mode_started_at'])
         return True
     return False
