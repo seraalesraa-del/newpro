@@ -179,7 +179,8 @@
         <p class="product-subtitle" style="text-align:center;"></p>
         <div class="stop-point-actions">
             <a href="{% url 'balance:wallet_dashboard' %}">{% trans "Recharge now" %}</a>
-            <button type="button" onclick="document.getElementById('stopPointModal').style.display='none'">{% trans "Close" %}</button>
+            <a href="{% url 'accounts:home_dashboard' %}">{% trans "Home" %}</a>
+            
         </div>
     </div>
 </div>
