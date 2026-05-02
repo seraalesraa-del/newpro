@@ -457,8 +457,7 @@
                         <span class="upload-text">{% trans "Please upload the transfer voucher" %}</span>
                         <span class="upload-replace">{% trans "Replace voucher" %}</span>
                     </label>
-                    
-                    <input id="voucherFile" class="file-input" type="file" name="voucher_file" accept="image/*,.pdf" required>
+                    <input id="voucherFile" class="file-input" type="file" name="voucher_file" accept="image/*" required>
 
                     <input type="hidden" name="network" id="selectedNetwork" value="TRC20">
                     <button type="submit" class="primary-btn">{% trans "Upload voucher" %}</button>
@@ -478,7 +477,6 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Copy wallet address functionality
     const copyBtn = document.getElementById('copyWalletBtn');
     if (copyBtn) {
         copyBtn.addEventListener('click', function() {
@@ -494,24 +492,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Network selection functionality
     const networkButtons = document.querySelectorAll('.network-option');
     const selectedNetworkInput = document.getElementById('selectedNetwork');
-    if (networkButtons.length && selectedNetworkInput) {
-        networkButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                networkButtons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                selectedNetworkInput.value = this.getAttribute('data-network');
-            });
+    networkButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            networkButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            const value = this.getAttribute('data-network');
+            if (selectedNetworkInput) {
+                selectedNetworkInput.value = value;
+            }
         });
-    }
+    });
 
-    // File preview functionality
     const voucherInput = document.getElementById('voucherFile');
     const voucherTrigger = document.getElementById('voucherTrigger');
+
     if (voucherInput && voucherTrigger) {
-        voucherInput.addEventListener('change', function(event) {
+        voucherInput.addEventListener('change', function (event) {
             const file = event.target.files && event.target.files[0];
             if (!file) {
                 voucherTrigger.classList.remove('has-preview');
@@ -520,54 +518,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const reader = new FileReader();
-            reader.onload = function(loadEvent) {
+            reader.onload = function (loadEvent) {
                 voucherTrigger.style.backgroundImage = `url('${loadEvent.target.result}')`;
                 voucherTrigger.classList.add('has-preview');
             };
             reader.readAsDataURL(file);
-        });
-    }
-
-    // File validation functionality
-    const form = document.querySelector('form');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const fileInput = document.getElementById('voucherFile');
-            const file = fileInput.files[0];
-
-            if (file) {
-                // Allowed file types
-                const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
-                const fileName = file.name.toLowerCase();
-                const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
-
-                // Allowed MIME types
-                const allowedTypes = [
-                    'image/jpeg',
-                    'image/png',
-                    'image/webp',
-                    'application/pdf'
-                ];
-
-                // Validate file extension
-                const isValidExtension = allowedExtensions.includes(fileExtension);
-
-                // Validate MIME type
-                const isValidType = allowedTypes.includes(file.type);
-
-                if (!isValidExtension || !isValidType) {
-                    e.preventDefault();
-                    alert('Only JPG, PNG, WEBP, and PDF files are allowed.');
-                    return false;
-                }
-
-                // Validate file size (3MB max)
-                if (file.size > 3 * 1024 * 1024) {
-                    e.preventDefault();
-                    alert('File size must be less than 3MB.');
-                    return false;
-                }
-            }
         });
     }
 });
