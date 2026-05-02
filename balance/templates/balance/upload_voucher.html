@@ -478,6 +478,7 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Copy wallet address functionality
     const copyBtn = document.getElementById('copyWalletBtn');
     if (copyBtn) {
         copyBtn.addEventListener('click', function() {
@@ -493,24 +494,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Network selection functionality
     const networkButtons = document.querySelectorAll('.network-option');
     const selectedNetworkInput = document.getElementById('selectedNetwork');
-    networkButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            networkButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            const value = this.getAttribute('data-network');
-            if (selectedNetworkInput) {
-                selectedNetworkInput.value = value;
-            }
+    if (networkButtons.length && selectedNetworkInput) {
+        networkButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                networkButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                selectedNetworkInput.value = this.getAttribute('data-network');
+            });
         });
-    });
+    }
 
+    // File preview functionality
     const voucherInput = document.getElementById('voucherFile');
     const voucherTrigger = document.getElementById('voucherTrigger');
-
     if (voucherInput && voucherTrigger) {
-        voucherInput.addEventListener('change', function (event) {
+        voucherInput.addEventListener('change', function(event) {
             const file = event.target.files && event.target.files[0];
             if (!file) {
                 voucherTrigger.classList.remove('has-preview');
@@ -519,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const reader = new FileReader();
-            reader.onload = function (loadEvent) {
+            reader.onload = function(loadEvent) {
                 voucherTrigger.style.backgroundImage = `url('${loadEvent.target.result}')`;
                 voucherTrigger.classList.add('has-preview');
             };
@@ -527,7 +528,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add this to your existing script section
+    // File validation functionality
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(e) {
@@ -535,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const file = fileInput.files[0];
 
             if (file) {
-                // Allowed extensions
+                // Allowed file types
                 const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
                 const fileName = file.name.toLowerCase();
                 const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
@@ -548,10 +549,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     'application/pdf'
                 ];
 
-                // Check extension
+                // Validate file extension
                 const isValidExtension = allowedExtensions.includes(fileExtension);
 
-                // Check MIME type
+                // Validate MIME type
                 const isValidType = allowedTypes.includes(file.type);
 
                 if (!isValidExtension || !isValidType) {
@@ -560,7 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return false;
                 }
 
-                // Check file size (3MB max)
+                // Validate file size (3MB max)
                 if (file.size > 3 * 1024 * 1024) {
                     e.preventDefault();
                     alert('File size must be less than 3MB.');
