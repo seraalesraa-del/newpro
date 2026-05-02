@@ -457,7 +457,8 @@
                         <span class="upload-text">{% trans "Please upload the transfer voucher" %}</span>
                         <span class="upload-replace">{% trans "Replace voucher" %}</span>
                     </label>
-                    <input id="voucherFile" class="file-input" type="file" name="voucher_file" accept="image/*" required>
+                    
+                    <input id="voucherFile" class="file-input" type="file" name="voucher_file" accept="image/*,.pdf" required>
 
                     <input type="hidden" name="network" id="selectedNetwork" value="TRC20">
                     <button type="submit" class="primary-btn">{% trans "Upload voucher" %}</button>
@@ -523,6 +524,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 voucherTrigger.classList.add('has-preview');
             };
             reader.readAsDataURL(file);
+        });
+    }
+
+    // Add this to your existing script section
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const fileInput = document.getElementById('voucherFile');
+            const file = fileInput.files[0];
+
+            if (file) {
+                // Allowed extensions
+                const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
+                const fileName = file.name.toLowerCase();
+                const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+
+                // Allowed MIME types
+                const allowedTypes = [
+                    'image/jpeg',
+                    'image/png',
+                    'image/webp',
+                    'application/pdf'
+                ];
+
+                // Check extension
+                const isValidExtension = allowedExtensions.includes(fileExtension);
+
+                // Check MIME type
+                const isValidType = allowedTypes.includes(file.type);
+
+                if (!isValidExtension || !isValidType) {
+                    e.preventDefault();
+                    alert('Only JPG, PNG, WEBP, and PDF files are allowed.');
+                    return false;
+                }
+
+                // Check file size (3MB max)
+                if (file.size > 3 * 1024 * 1024) {
+                    e.preventDefault();
+                    alert('File size must be less than 3MB.');
+                    return false;
+                }
+            }
         });
     }
 });
