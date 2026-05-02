@@ -114,16 +114,19 @@ CHANNEL_LAYERS = {
 DATABASE_URL = config('DATABASE_URL', default='').strip()
 
 if DATABASE_URL:
-    import dj_database_url
+    url = urllib.parse.urlparse(DATABASE_URL)
     DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,          # Reuse connections
-            ssl_require=True,         # Force SSL
-            connect_timeout=5,        # Prevent hanging
-            pool_size=5,              # Limit connections per server
-            max_conns=10              # Maximum total connections
-        )
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql' if url.scheme.startswith('postgres') else 'django.db.backends.sqlite3',
+            'NAME': url.path[1:],
+            'USER': url.username or '',
+            'PASSWORD': url.password or '',
+            'HOST': url.hostname or '',
+            'PORT': url.port or '5432',
+            'OPTIONS': {
+                'sslmode': 'require'  # This is the only addition - forces SSL
+            }
+        }
     }
 else:
     DATABASES = {
@@ -262,8 +265,6 @@ def get_jazzmin_user_settings(request):
     return settings
 
 JAZZMIN_UI_TWEAKS = SimpleLazyObject(lambda: get_jazzmin_user_settings)
-
-
 
 print("DEBUG Backblaze Vars:")
 print("B2_BUCKET_NAME:", config("B2_BUCKET_NAME", default="NOT SET"))
