@@ -264,19 +264,6 @@ def get_jazzmin_user_settings(request):
 JAZZMIN_UI_TWEAKS = SimpleLazyObject(lambda: get_jazzmin_user_settings)
 
 
-# Add to settings.py
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': os.environ.get('REDIS_URL'),  # Your Upstash Redis URL
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
-    }
-}
 
 print("DEBUG Backblaze Vars:")
 print("B2_BUCKET_NAME:", config("B2_BUCKET_NAME", default="NOT SET"))
