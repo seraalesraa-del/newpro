@@ -114,19 +114,16 @@ CHANNEL_LAYERS = {
 DATABASE_URL = config('DATABASE_URL', default='').strip()
 
 if DATABASE_URL:
-    url = urllib.parse.urlparse(DATABASE_URL)
+    import dj_database_url
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql' if url.scheme.startswith('postgres') else 'django.db.backends.sqlite3',
-            'NAME': url.path[1:],
-            'USER': url.username or '',
-            'PASSWORD': url.password or '',
-            'HOST': url.hostname or '',
-            'PORT': url.port or '5432',
-            'OPTIONS': {
-                'sslmode': 'require'  # This is the only addition - forces SSL
-            }
-        }
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,          # Reuse connections
+            ssl_require=True,         # Force SSL
+            connect_timeout=5,        # Prevent hanging
+            pool_size=5,              # Limit connections per server
+            max_conns=10              # Maximum total connections
+        )
     }
 else:
     DATABASES = {
@@ -265,6 +262,21 @@ def get_jazzmin_user_settings(request):
     return settings
 
 JAZZMIN_UI_TWEAKS = SimpleLazyObject(lambda: get_jazzmin_user_settings)
+
+
+# Add to settings.py
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL'),  # Your Upstash Redis URL
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
 
 print("DEBUG Backblaze Vars:")
 print("B2_BUCKET_NAME:", config("B2_BUCKET_NAME", default="NOT SET"))
