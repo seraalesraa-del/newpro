@@ -32,7 +32,4 @@ handler500 = 'AmazonProject.views.error_500'
 handler403 = 'AmazonProject.views.error_403'
 
 
-# Catch ALL unknown URLs and show custom 404
-urlpatterns += [
-    re_path(r'^.*$', error_404),
-]
+
