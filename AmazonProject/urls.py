@@ -25,3 +25,14 @@ urlpatterns += i18n_patterns(
 
 # Serve media files (works locally and on Render free plan)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+#  Custom error handlers
+handler404 = 'AmazonProject.views.error_404'
+handler500 = 'AmazonProject.views.error_500'
+handler403 = 'AmazonProject.views.error_403'
+
+
+# Catch ALL unknown URLs and show custom 404
+urlpatterns += [
+    re_path(r'^.*$', error_404),
+]
