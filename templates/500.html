@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - Server Error</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #050608;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #faf9f7;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .logo {
+            width: 140px;
+            margin-bottom: 2.5rem;
+            filter: brightness(1.1);
+        }
+
+        .card {
+            background: rgba(19, 25, 33, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            width: 100%;
+        }
+
+        .error-code {
+            font-size: 7rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #f5c274, #e3942d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+
+        .error-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #faf9f7;
+            margin-bottom: 1rem;
+        }
+
+        .error-message {
+            font-size: 0.95rem;
+            color: rgba(247, 250, 250, 0.6);
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.07);
+            margin: 1.5rem 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.85rem 2.5rem;
+            background: linear-gradient(135deg, #f5c274, #e3942d);
+            color: #0f1111;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-radius: 18px;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 8px 20px rgba(229, 160, 60, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(229, 160, 60, 0.4);
+        }
+
+        .footer-text {
+            margin-top: 2rem;
+            font-size: 0.78rem;
+            color: rgba(247, 250, 250, 0.35);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img 
+            src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" 
+            alt="Amazon Logo" 
+            class="logo"
+        >
+        <div class="card">
+            <div class="error-code">500</div>
+            <div class="error-title">Server Error</div>
+            <div class="divider"></div>
+            <p class="error-message">
+                Something went wrong on our end. Our team has been notified
+                and is working to fix the issue. Please try again later.
+            </p>
+            
+        </div>
+        <p class="footer-text">© 2026 Amazon. All rights reserved.</p>
+    </div>
+</body>
+</html>
