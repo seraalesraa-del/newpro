@@ -266,8 +266,30 @@ def get_jazzmin_user_settings(request):
 
 JAZZMIN_UI_TWEAKS = SimpleLazyObject(lambda: get_jazzmin_user_settings)
 
-print("DEBUG Backblaze Vars:")
-print("B2_BUCKET_NAME:", config("B2_BUCKET_NAME", default="NOT SET"))
-print("B2_KEY_ID:", config("B2_KEY_ID", default="NOT SET"))
-print("B2_APP_KEY:", config("B2_APP_KEY", default="NOT SET"))
+#print("DEBUG Backblaze Vars:")
+#print("B2_BUCKET_NAME:", config("B2_BUCKET_NAME", default="NOT SET"))
+#print("B2_KEY_ID:", config("B2_KEY_ID", default="NOT SET"))
+#print("B2_APP_KEY:", config("B2_APP_KEY", default="NOT SET"))
+
+# Add this to settings.py temporarily
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
 
