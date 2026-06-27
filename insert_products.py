@@ -4,7 +4,7 @@ import re
 import django
 
 # Force Django to use Render's database
-os.environ["DATABASE_URL"] = "postgresql://amazon_postsql_db_user:M8vcj1u7mfMZk52juqGUlmErRQILtUeR@dpg-d7rdq41j2pic73f8n080-a.oregon-postgres.render.com/amazon_postsql_db"  # Replace with your actual Render DB URL
+os.environ["DATABASE_URL"] = "postgresql://mydb_0u6f_user:qK33tvATs8M9gCa6TiUCUAUw82XILRwO@dpg-d8vrioj7uimc738q55j0-a.oregon-postgres.render.com/mydb_0u6f"  # Replace with your actual Render DB URL
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AmazonProject.settings")
 django.setup()
 
