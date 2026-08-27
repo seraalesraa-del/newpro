@@ -212,9 +212,10 @@ STORAGES = {
                 connect_timeout=30,
                 read_timeout=60,
                 retries={"max_attempts": 3, "mode": "standard"},
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
                 s3={
                     "payload_signing": False,
-                    "addressing_style": "path",
                 },
             ),
         },
