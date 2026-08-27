@@ -21,6 +21,58 @@ from balance.utils import (
 from accounts.models import SuperAdminWallet
 from commission.models import Commission
 
+import traceback
+import boto3
+from decouple import config
+from django.http import JsonResponse
+from django.contrib.admin.views.decorators import staff_member_required
+
+
+@staff_member_required
+def b2_diagnostic_view(request):
+    result = {"steps": []}
+
+    # Step A: build client
+    try:
+        s3 = boto3.client(
+            "s3",
+            endpoint_url="https://s3.us-east-005.backblazeb2.com",
+            aws_access_key_id=config("B2_KEY_ID"),
+            aws_secret_access_key=config("B2_APP_KEY"),
+            region_name="us-east-005",
+        )
+        result["steps"].append({"step": "client_created", "ok": True})
+    except Exception as e:
+        result["steps"].append({"step": "client_created", "ok": False, "error": str(e)})
+        return JsonResponse(result, status=500)
+
+    # Step B: list buckets (pure auth test)
+    try:
+        buckets = s3.list_buckets()
+        names = [b["Name"] for b in buckets.get("Buckets", [])]
+        result["steps"].append({"step": "list_buckets", "ok": True, "buckets": names})
+    except Exception as e:
+        result["steps"].append({
+            "step": "list_buckets", "ok": False,
+            "error": str(e), "trace": traceback.format_exc()
+        })
+        return JsonResponse(result, status=500)
+
+    # Step C: tiny PUT
+    try:
+        bucket = config("B2_BUCKET_NAME")
+        s3.put_object(Bucket=bucket, Key="diagnostic/ssl_test.txt", Body=b"hello world")
+        result["steps"].append({"step": "put_object", "ok": True})
+    except Exception as e:
+        result["steps"].append({
+            "step": "put_object", "ok": False,
+            "error": str(e), "trace": traceback.format_exc()
+        })
+        return JsonResponse(result, status=500)
+
+    result["all_passed"] = True
+    return JsonResponse(result)
+
 # -----------------------------
 # Admin check
 # -----------------------------
