@@ -209,9 +209,13 @@ STORAGES = {
             "addressing_style": "path",
             "signature_version": "s3v4",
             "client_config": Config(
-                connect_timeout=15,
-                read_timeout=30,
+                connect_timeout=30,
+                read_timeout=60,
                 retries={"max_attempts": 3, "mode": "standard"},
+                s3={
+                    "payload_signing": False,
+                    "addressing_style": "path",
+                },
             ),
         },
     },
