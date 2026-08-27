@@ -215,7 +215,8 @@ STORAGES = {
                 request_checksum_calculation="when_required",
                 response_checksum_validation="when_required",
                 s3={
-                    "payload_signing": False,
+                    "payload_signing_enabled": False,   # ✅ corrected key
+                    "addressing_style": "path",          # safe to also set here
                 },
             ),
         },
@@ -224,7 +225,6 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
-
 # ---------------------------------------------------------------------
 # Authentication
 # ---------------------------------------------------------------------
