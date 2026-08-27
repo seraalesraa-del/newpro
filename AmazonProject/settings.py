@@ -8,8 +8,11 @@ import os
 import urllib.parse
 from pathlib import Path
 
+from botocore.config import Config
 from django.conf.locale import LANG_INFO
 from django.contrib.auth.hashers import make_password
+from django.contrib.messages import constants as messages
+from django.utils.functional import SimpleLazyObject
 from django.utils.translation import gettext_lazy as _
 from decouple import config
 
@@ -90,10 +93,8 @@ WSGI_APPLICATION = 'AmazonProject.wsgi.application'
 ASGI_APPLICATION = 'AmazonProject.asgi.application'
 
 # ---------------------------------------------------------------------
-# Chaannel layer to support multiple server -UPstash channel layer 
+# Channel layer to support multiple server - Upstash channel layer 
 # ---------------------------------------------------------------------
-
-
 REDIS_URL = os.environ.get("REDIS_URL")
 
 CHANNEL_LAYERS = {
@@ -104,9 +105,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
-
-
-
 
 # ---------------------------------------------------------------------
 # Database
@@ -124,7 +122,7 @@ if DATABASE_URL:
             'HOST': url.hostname or '',
             'PORT': url.port or '5432',
             'OPTIONS': {
-                'sslmode': 'require'  # This is the only addition - forces SSL
+                'sslmode': 'require'
             }
         }
     }
@@ -207,19 +205,20 @@ STORAGES = {
             "region_name": "us-east-005",
             "file_overwrite": False,
             "default_acl": None,
-            "querystring_auth": True,
-            "querystring_expire": 604800, 
+            "querystring_auth": False,
             "addressing_style": "path",
             "signature_version": "s3v4",
+            "client_config": Config(
+                connect_timeout=15,
+                read_timeout=30,
+                retries={"max_attempts": 3, "mode": "standard"},
+            ),
         },
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
-
-
-
 
 # ---------------------------------------------------------------------
 # Authentication
@@ -237,8 +236,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 MESSAGE_LEVEL = 20
 
-from django.contrib.messages import constants as messages
-
 MESSAGE_TAGS = {
     messages.DEBUG: 'alert-info',
     messages.INFO: 'alert-info',
@@ -246,8 +243,6 @@ MESSAGE_TAGS = {
     messages.WARNING: 'alert-warning',
     messages.ERROR: 'alert-danger',
 }
-
-from django.utils.functional import SimpleLazyObject
 
 def get_jazzmin_user_settings(request):
     user = getattr(request, "user", None)
@@ -268,12 +263,6 @@ def get_jazzmin_user_settings(request):
 
 JAZZMIN_UI_TWEAKS = SimpleLazyObject(lambda: get_jazzmin_user_settings)
 
-#print("DEBUG Backblaze Vars:")
-#print("B2_BUCKET_NAME:", config("B2_BUCKET_NAME", default="NOT SET"))
-#print("B2_KEY_ID:", config("B2_KEY_ID", default="NOT SET"))
-#print("B2_APP_KEY:", config("B2_APP_KEY", default="NOT SET"))
-
-# Add this to settings.py temporarily
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -294,4 +283,3 @@ LOGGING = {
         },
     },
 }
-
